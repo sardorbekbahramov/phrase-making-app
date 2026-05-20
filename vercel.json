@@ -1,5 +1,3 @@
 {
-  "buildCommand": "npx vite build",
-  "framework": "vite",
-  "outputDir": "dist"
+  "buildCommand": "npx vite build"
 }
