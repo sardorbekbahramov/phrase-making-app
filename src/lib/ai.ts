@@ -1,15 +1,14 @@
 import { Phrase, QuizQuestion } from '../types';
 import { mockPhrases } from './mockData';
 
-const getApiKey = () => {
+function getApiKey(): string {
   try {
     const store = JSON.parse(localStorage.getItem('phraseflow-storage') || '{}');
-    return store?.state?.settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
-  } catch {
-    return import.meta.env.VITE_GEMINI_API_KEY || '';
-  }
-};
-const GEMINI_API_KEY = getApiKey();
+    const localKey = store?.state?.settings?.geminiApiKey;
+    if (localKey && localKey.length > 10) return localKey;
+  } catch {}
+  return import.meta.env.VITE_GEMINI_API_KEY || '';
+}
 
 let phraseIndex = 0;
 const usedPhrases = new Set<string>();
@@ -20,9 +19,7 @@ function generateId(): string {
 
 function getNextMockPhrase(): Phrase {
   const available = mockPhrases.filter(p => !usedPhrases.has(p.phrase));
-  if (available.length === 0) {
-    usedPhrases.clear();
-  }
+  if (available.length === 0) usedPhrases.clear();
   const phrase = available[phraseIndex % available.length] || mockPhrases[phraseIndex % mockPhrases.length];
   phraseIndex++;
   usedPhrases.add(phrase.phrase);
@@ -30,8 +27,9 @@ function getNextMockPhrase(): Phrase {
 }
 
 async function callGemini(prompt: string): Promise<string> {
+  const key = getApiKey();
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -47,7 +45,8 @@ async function callGemini(prompt: string): Promise<string> {
 }
 
 export async function generatePhrase(): Promise<Phrase> {
-  if (!GEMINI_API_KEY) {
+  const key = getApiKey();
+  if (!key) {
     await new Promise(r => setTimeout(r, 600));
     return getNextMockPhrase();
   }
@@ -78,7 +77,8 @@ Choose a DIFFERENT phrase each time. Make explanations simple for Uzbek English 
 }
 
 export async function regenerateExample(phrase: Phrase): Promise<Partial<Phrase>> {
-  if (!GEMINI_API_KEY) {
+  const key = getApiKey();
+  if (!key) {
     await new Promise(r => setTimeout(r, 800));
     const variants = [
       {
@@ -121,62 +121,23 @@ export async function regenerateExample(phrase: Phrase): Promise<Partial<Phrase>
 
 export async function generateQuiz(savedPhrases: Phrase[]): Promise<QuizQuestion[]> {
   if (savedPhrases.length < 2) return [];
-
   const questions: QuizQuestion[] = [];
 
-  // phrase-to-meaning questions
-  savedPhrases.slice(0, 4).forEach((p, i) => {
-    const wrongOptions = savedPhrases
-      .filter(op => op.id !== p.id)
-      .slice(0, 3)
-      .map(op => op.meaning);
-
+  savedPhrases.slice(0, 4).forEach((p) => {
+    const wrongOptions = savedPhrases.filter(op => op.id !== p.id).slice(0, 3).map(op => op.meaning);
     const options = [p.meaning, ...wrongOptions].sort(() => Math.random() - 0.5);
-
-    questions.push({
-      id: generateId(),
-      type: 'phrase-to-meaning',
-      question: p.phrase,
-      answer: p.meaning,
-      options,
-      phraseId: p.id,
-    });
+    questions.push({ id: generateId(), type: 'phrase-to-meaning', question: p.phrase, answer: p.meaning, options, phraseId: p.id });
   });
 
-  // uzbek-to-english
   savedPhrases.slice(0, 3).forEach(p => {
-    const wrongOptions = savedPhrases
-      .filter(op => op.id !== p.id)
-      .slice(0, 3)
-      .map(op => op.phrase);
-
+    const wrongOptions = savedPhrases.filter(op => op.id !== p.id).slice(0, 3).map(op => op.phrase);
     const options = [p.phrase, ...wrongOptions].sort(() => Math.random() - 0.5);
-
-    questions.push({
-      id: generateId(),
-      type: 'uzbek-to-english',
-      question: p.uzbekEquivalent,
-      answer: p.phrase,
-      options,
-      phraseId: p.id,
-    });
+    questions.push({ id: generateId(), type: 'uzbek-to-english', question: p.uzbekEquivalent, answer: p.phrase, options, phraseId: p.id });
   });
 
-  // fill-in-blank
   savedPhrases.slice(0, 3).forEach(p => {
-    const blank = p.example.replace(
-      new RegExp(p.phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
-      '___________'
-    );
-
-    questions.push({
-      id: generateId(),
-      type: 'fill-blank',
-      question: blank,
-      answer: p.phrase,
-      options: [],
-      phraseId: p.id,
-    });
+    const blank = p.example.replace(new RegExp(p.phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '___________');
+    questions.push({ id: generateId(), type: 'fill-blank', question: blank, answer: p.phrase, options: [], phraseId: p.id });
   });
 
   return questions.sort(() => Math.random() - 0.5).slice(0, 8);
