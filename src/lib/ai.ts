@@ -1,7 +1,15 @@
 import { Phrase, QuizQuestion } from '../types';
 import { mockPhrases } from './mockData';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const getApiKey = () => {
+  try {
+    const store = JSON.parse(localStorage.getItem('phraseflow-storage') || '{}');
+    return store?.state?.settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
+  } catch {
+    return import.meta.env.VITE_GEMINI_API_KEY || '';
+  }
+};
+const GEMINI_API_KEY = getApiKey();
 
 let phraseIndex = 0;
 const usedPhrases = new Set<string>();
