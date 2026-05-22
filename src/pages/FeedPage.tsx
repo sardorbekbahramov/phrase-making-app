@@ -1,10 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { generatePhrase } from '../lib/ai';
 import { useAppStore } from '../stores/appStore';
 import { Phrase } from '../types';
+import { mockPhrases } from '../lib/mockData';
 import PhraseCard from '../components/cards/PhraseCard';
 import PhraseCardSkeleton from '../components/ui/PhraseCardSkeleton';
+
+function generateId(): string {
+  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+}
+
+let currentIndex = 0;
+
+function getNextPhrase(): Phrase {
+  const phrase = mockPhrases[currentIndex % mockPhrases.length];
+  currentIndex++;
+  return { ...phrase, id: generateId() };
+}
 
 export default function FeedPage() {
   const [phrase, setPhrase] = useState<Phrase | null>(null);
@@ -12,27 +24,21 @@ export default function FeedPage() {
   const [key, setKey] = useState(0);
   const { updateStreak } = useAppStore();
 
-  const fetchNextPhrase = useCallback(async () => {
-    setLoading(true);
-    setPhrase(null);
-    try {
-      const next = await generatePhrase();
-      setPhrase(next);
-      setKey(k => k + 1);
-    } catch {
-      // fallback handled in ai.ts
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     updateStreak();
-    fetchNextPhrase();
+    const first = getNextPhrase();
+    setPhrase(first);
+    setLoading(false);
   }, []);
 
   const handleNext = () => {
-    fetchNextPhrase();
+    setLoading(true);
+    setTimeout(() => {
+      const next = getNextPhrase();
+      setPhrase(next);
+      setKey(k => k + 1);
+      setLoading(false);
+    }, 300);
   };
 
   return (
