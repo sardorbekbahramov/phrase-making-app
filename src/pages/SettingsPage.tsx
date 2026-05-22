@@ -144,33 +144,6 @@ export default function SettingsPage() {
         />
       </SettingsSection>
 
-      {/* API */}
-      <SettingsSection title="AI Sozlamalari">
-        <div className="px-4 py-3 space-y-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <div className="flex items-center gap-2 mb-1">
-            <Key size={15} style={{ color: 'var(--color-text-secondary)' }} />
-            <p className="font-body text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-              Gemini API kalit
-            </p>
-          </div>
-          <input
-            type="password"
-            value={settings.geminiApiKey}
-            onChange={e => updateSettings({ geminiApiKey: e.target.value })}
-            placeholder="AIza..."
-            className="w-full px-3 py-2.5 rounded-xl font-body text-sm outline-none"
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text)',
-            }}
-          />
-          <p className="font-body text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-            Kalitsiz mahalliy ma'lumotlar ishlatiladi
-          </p>
-        </div>
-      </SettingsSection>
-
       {/* Data */}
       <SettingsSection title="Ma'lumotlar">
         <SettingsRow
