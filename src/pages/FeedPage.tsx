@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../stores/appStore';
 import { Phrase } from '../types';
@@ -10,32 +10,29 @@ function generateId(): string {
   return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 }
 
-let currentIndex = 0;
-
-function getNextPhrase(): Phrase {
-  const phrase = mockPhrases[currentIndex % mockPhrases.length];
-  currentIndex++;
-  return { ...phrase, id: generateId() };
-}
-
 export default function FeedPage() {
   const [phrase, setPhrase] = useState<Phrase | null>(null);
   const [loading, setLoading] = useState(true);
   const [key, setKey] = useState(0);
+  const indexRef = useRef(0);
   const { updateStreak } = useAppStore();
+
+  const getNextPhrase = (): Phrase => {
+    const p = mockPhrases[indexRef.current % mockPhrases.length];
+    indexRef.current++;
+    return { ...p, id: generateId() };
+  };
 
   useEffect(() => {
     updateStreak();
-    const first = getNextPhrase();
-    setPhrase(first);
+    setPhrase(getNextPhrase());
     setLoading(false);
   }, []);
 
   const handleNext = () => {
     setLoading(true);
     setTimeout(() => {
-      const next = getNextPhrase();
-      setPhrase(next);
+      setPhrase(getNextPhrase());
       setKey(k => k + 1);
       setLoading(false);
     }, 300);
